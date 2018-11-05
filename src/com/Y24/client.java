@@ -6,6 +6,7 @@ package com.Y24;
   1 20 23 0 1 0 2 1 2 2 3 2 16 3 4 4 5 5 6 6 7 7 8 8 9 8 10 10 11 12 11 12 8 12 19 19 14 13
  14 15 14 19 16 16 17 17 18 3 18 12 0 1 1 0 3 1 5 0 7 1 9 1 10 0 12 0 14 1 15 1 16 0 18 0
 */
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -78,9 +79,8 @@ class cities {
     }
 
     city getCity(int id) throws Exception {
-        for (city c : inter
-        )
-            if (c.getId() == id) return c;
+        if (id < inter.size())
+            return inter.get(id);
         throw new Exception("At global cities we cannot find city by id:" + id);
     }
 }
@@ -104,29 +104,23 @@ class kingdom {
         }
     }
 
-    private boolean contain(int id, final ArrayList<Integer> all) {
-        for (int j : all)
-            if (j == id) return true;
-        return false;
-    }
-
     boolean boundaryAnalyze(final cities global) throws Exception {
         added_flag.clear();
         for (int i : boundary
         )
             if (global.getCity(i).getFlag() == (belong ? color.BLACK : color.RED)) {
-                if (!contain(i, added_flag)) added_flag.add(i);
+                if (!added_flag.contains(i)) added_flag.add(i);
             }
         return !added_flag.isEmpty();
     }
 
     private boolean isIn(int id) {
-        if (contain(id, inter))
+        if (inter.contains(id))
             return true;
-        return contain(id, boundary);
+        return boundary.contains(id);
     }
 
-    private void boundaryUnion(city c) throws Exception {
+    private void boundaryUnion(city c) {
         for (int i : c.getBoundary())
             if (!isIn(i))
                 boundary.add(i);
@@ -135,17 +129,9 @@ class kingdom {
     void increase(final cities global) throws Exception {
         for (int i : added_flag) {
             inter.add(i);
-            city c = global.getCity(i);
-            ArrayList<Integer> boundaryBak = clone(boundary);
-            for (Integer j : boundaryBak)
-                if (j == i)
-                    boundary.remove(j);
-            boundaryUnion(c);
+            boundary.remove(Integer.valueOf(i));
+            boundaryUnion(global.getCity(i));
         }
-    }
-
-    private ArrayList<Integer> clone(ArrayList<Integer> boundary) {
-        return new ArrayList<Integer>(boundary);
     }
 
     ArrayList<Integer> getInter() {
@@ -322,22 +308,13 @@ class Game {
         for (kingdom k : ks.getInter())
             for (Integer id : k.getBoundary())
                 if (global.getCity(id).getFlag() == color.WHITE) {
-                    if (!containsKey(whiteCities, id))
+                    if (!whiteCities.containsKey(id))
                         whiteCities.put(id, new competitor());
                     if (ks.getBelong())
                         whiteCities.get(id).getBlackSizes().add(k.size());
                     else whiteCities.get(id).getRedSizes().add(k.size());
 
                 }
-
-
-    }
-
-    private boolean containsKey(HashMap<Integer, competitor> whiteCities, Integer id) {
-        for (int i : whiteCities.keySet())
-            if (i == id)
-                return true;
-        return false;
     }
 
     String SecondStage() throws Exception {
@@ -363,17 +340,10 @@ class Game {
     private void attackPerSecond() throws Exception {
         ArrayList<Integer> flag = new ArrayList<Integer>();
         for (int id : changedCities)
-            if (!contains(id, flag)) {
+            if (!flag.contains(id)) {
                 global.setColor(id, global.getCity(id).getFlag() == color.BLACK ? color.RED : color.BLACK);
                 flag.add(id);
             }
-    }
-
-    private boolean contains(int id, ArrayList<Integer> flag) {
-        for (int i : flag)
-            if (i == id)
-                return true;
-        return false;
     }
 
     private boolean gameAnalyze() throws Exception {
@@ -388,7 +358,9 @@ class Game {
             ArrayList<Integer> boundary = k.getBoundary();
             for (int i : boundary) {
                 kingdom kingdom = findKingdom(i);
-                if (kingdom.size() < k.size())
+                if (kingdom.getBelong()==k.getBelong())
+                    throw new Exception("The kingdom is incorrectly formed");
+                if (kingdom.size() < k.size() && !(changedCities.contains(kingdom.getInter().get(0))))
                     changedCities.addAll(kingdom.getInter());
             }
         }
@@ -396,11 +368,11 @@ class Game {
 
     private kingdom findKingdom(int id) throws Exception {
         for (kingdom kingdom : bK.getInter())
-            for (int i : kingdom.getInter())
-                if (i == id) return kingdom;
+            if(kingdom.getInter().contains(id))
+                return kingdom;
         for (kingdom kingdom : rK.getInter())
-            for (int i : kingdom.getInter())
-                if (i == id) return kingdom;
+            if(kingdom.getInter().contains(id))
+                return kingdom;
         throw new Exception("cannot find kingdom by id:" + id);
     }
 
@@ -423,6 +395,7 @@ class Game {
 public class client {
 
     public static void main(String[] args) {
+
         // write your code here
         int test_sum;
         Scanner input = new Scanner(System.in);
